@@ -1,13 +1,36 @@
-- name: Run scraper
-  env:
-    BASE44_API_KEY: ${{ secrets.BASE44_API_KEY }}
-  run: |
-    echo "Checking BASE44 API key..."
+name: Weekly Competition Sync
 
-    if [ -z "$BASE44_API_KEY" ]; then
-      echo "❌ NO KEY FOUND - Secret is missing or not injected"
-      exit 1
-    fi
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0"
 
-    echo "✅ Key found, running scraper..."
-    python scraper.py
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run scraper
+        env:
+          BASE44_API_KEY: ${{ secrets.BASE44_API_KEY }}
+        run: |
+          echo "Checking BASE44 API key..."
+
+          if [ -z "$BASE44_API_KEY" ]; then
+            echo "❌ NO KEY FOUND"
+            exit 1
+          fi
+
+          echo "✅ Key found, running scraper..."
+          python scraper.py
