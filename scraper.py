@@ -49,24 +49,34 @@ def scrape():
 # -----------------------------
 # PUSH TO BASE44
 # -----------------------------
-def push_to_base44(base44, data):
-    print(f"📦 Found {len(data)} competitions")
+import requests
 
-    created = 0
+BASE44_API_URL = "https://api.base44.com"  # your Base44 endpoint
+
+def push_to_base44(data, api_key):
+    print("📡 Pushing to Base44 via HTTP...")
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
 
     for comp in data:
-        try:
-            base44.asServiceRole.entities.Competition.create({
-                "title": comp["title"],
-                "url": comp["url"],
-                "is_scraped": True
-            })
-            print("→ saved:", comp["title"])
-            created += 1
-        except Exception as e:
-            print("❌ failed:", comp["title"], str(e))
+        payload = {
+            "title": comp["title"],
+            "url": comp["url"],
+            "is_scraped": True
+        }
 
-    return created
+        res = requests.post(
+            f"{BASE44_API_URL}/entities/Competition",
+            json=payload,
+            headers=headers
+        )
+
+        print("→", comp["title"], res.status_code)
+
+    print("✅ Done pushing")
 
 
 # -----------------------------
@@ -84,17 +94,9 @@ def write_sync_log(base44, count):
 # MAIN
 # -----------------------------
 def main():
-    from base44.sdk import createClientFromRequest
-
-    base44 = createClientFromRequest(None)
-
     data = scrape()
 
-    created = push_to_base44(base44, data)
-
-    write_sync_log(base44, created)
-
-    print("✅ DONE")
+    push_to_base44(data, BASE44_API_KEY)
 
 
 main()
