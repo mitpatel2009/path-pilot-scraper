@@ -26,11 +26,12 @@ jobs:
           BASE44_API_KEY: ${{ secrets.BASE44_API_KEY }}
         run: |
           echo "Checking BASE44 API key..."
-
+      
           if [ -z "$BASE44_API_KEY" ]; then
             echo "❌ NO KEY FOUND"
             exit 1
           fi
-
+      
           echo "✅ Key found, running scraper..."
-          python scraper.py
+      
+          BASE44_API_KEY=$BASE44_API_KEY python scraper.py
