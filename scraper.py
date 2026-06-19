@@ -53,40 +53,38 @@ import requests
 
 BASE44_API_URL = "https://api.base44.com"  # your Base44 endpoint
 
-def push_to_base44(data, api_key):
-    print("📡 Pushing to Base44 via HTTP...")
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+def push_to_base44(base44, data):
+    created = 0
 
     for comp in data:
-        payload = {
-            "title": comp["title"],
-            "url": comp["url"],
-            "is_scraped": True
-        }
+        try:
+            base44.asServiceRole.entities.Competition.create({
+                "title": comp["title"],
+                "url": comp["url"],
+                "is_scraped": True
+            })
 
-        res = requests.post(
-            f"{BASE44_API_URL}/entities/Competition",
-            json=payload,
-            headers=headers
-        )
+            print("→ saved:", comp["title"])
+            created += 1
 
-        print("→", comp["title"], res.status_code)
+        except Exception as e:
+            print("❌ failed:", comp["title"], str(e))
 
-    print("✅ Done pushing")
+    return created
 
 
 # -----------------------------
 # SYNC LOG
 # -----------------------------
-def write_sync_log(base44, count):
+from datetime import datetime
+
+def write_sync_log(base44, imported=0, updated=0, status="Success", error=None):
     base44.asServiceRole.entities.CompetitionSync.create({
         "last_sync_at": datetime.utcnow().isoformat(),
-        "competitions_imported": count,
-        "status": "Success"
+        "competitions_imported": imported,
+        "competitions_updated": updated,
+        "status": status,
+        "error_message": error
     })
 
 
@@ -94,9 +92,31 @@ def write_sync_log(base44, count):
 # MAIN
 # -----------------------------
 def main():
-    data = scrape()
+    from base44.sdk import createClientFromRequest
 
-    push_to_base44(data, BASE44_API_KEY)
+    base44 = createClientFromRequest(None)
+
+    try:
+        # STEP 1: mark sync started
+        write_sync_log(base44, 0, 0, "In Progress")
+
+        # STEP 2: scrape data
+        data = scrape()
+
+        print(f"📦 Found {len(data)} competitions")
+
+        # STEP 3: push competitions
+        imported = push_to_base44(base44, data)
+
+        # STEP 4: final success log
+        write_sync_log(base44, imported=imported, updated=0, status="Success")
+
+        print("✅ SYNC COMPLETE")
+
+    except Exception as e:
+        # STEP 5: failure log
+        write_sync_log(base44, 0, 0, "Failed", str(e))
+        print("❌ SYNC FAILED:", str(e))
 
 
 main()
