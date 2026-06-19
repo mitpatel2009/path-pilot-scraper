@@ -60,23 +60,35 @@ def scrape_competitions():
 # -----------------------------
 # PUSH TO BASE44
 # -----------------------------
-def push_to_base44(data):
-    print("📡 SENDING TO BASE44...")
+import requests
 
-    # Base44 SDK style usage (adjust if your project differs)
-    try:
-        from base44.sdk import createClient
-    except:
-        print("⚠️ Base44 SDK not imported in CI — using fallback print mode")
+BASE_URL = "https://api.base44.com"  # (or your Base44 app endpoint)
+
+def push_to_base44(data):
+    print("📡 PUSHING TO BASE44 VIA HTTP API...")
+
+    headers = {
+        "Authorization": f"Bearer {BASE44_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
     for comp in data:
-        print("→", comp["title"])
+        payload = {
+            "title": comp["title"],
+            "url": comp["url"],
+            "description": "",
+            "is_scraped": True
+        }
 
-        # REAL INSERT (uncomment if SDK is correctly installed in GitHub runner)
-        # base44.asServiceRole.entities.Competition.create(comp)
+        res = requests.post(
+            f"{BASE_URL}/entities/Competition",
+            json=payload,
+            headers=headers
+        )
 
-    print("✅ Data processed successfully")
+        print("→", comp["title"], res.status_code)
 
+    print("✅ DONE PUSHING")
 
 # -----------------------------
 # MAIN FLOW
