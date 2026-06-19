@@ -1,105 +1,47 @@
-import os
 import requests
 from bs4 import BeautifulSoup
-
-print("Fetching website...")
-
-BASE44_API_KEY = os.getenv("BASE44_API_KEY")
-
-if not BASE44_API_KEY:
-    print("❌ ERROR: Missing BASE44_API_KEY")
-    exit(1)
-
-print("✅ API key loaded successfully")
+import json
 
 SCRAPE_URL = "https://www.studentcompetitions.com/competitions"
 
+def scrape():
+    print("Fetching website...")
 
-# -----------------------------
-# SCRAPING FUNCTION
-# -----------------------------
-def scrape_competitions():
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+    headers = {"User-Agent": "Mozilla/5.0"}
+    r = requests.get(SCRAPE_URL, headers=headers)
+    soup = BeautifulSoup(r.text, "html.parser")
 
-    response = requests.get(SCRAPE_URL, headers=headers)
-    html = response.text
-
-    soup = BeautifulSoup(html, "html.parser")
-
-    competitions = []
-
-    # Grab all links that look like competition pages
-    for a in soup.find_all("a", href=True):
-        href = a["href"]
-        title = a.get_text(strip=True)
-
-        if "/competitions/" in href and title and len(title) > 3:
-            full_url = href if href.startswith("http") else "https://www.studentcompetitions.com" + href
-
-            competitions.append({
-                "title": title,
-                "url": full_url,
-                "description": "",
-                "is_scraped": True
-            })
-
-    # remove duplicates
-    unique = []
+    data = []
     seen = set()
 
-    for c in competitions:
-        if c["url"] not in seen:
-            seen.add(c["url"])
-            unique.append(c)
+    for a in soup.find_all("a", href=True):
+        title = a.get_text(strip=True)
+        href = a["href"]
 
-    return unique
+        if "/competitions/" in href and title:
+            url = href if href.startswith("http") else "https://www.studentcompetitions.com" + href
 
+            if url not in seen:
+                seen.add(url)
+                data.append({
+                    "title": title,
+                    "url": url,
+                    "description": "",
+                    "is_scraped": True
+                })
 
-# -----------------------------
-# PUSH TO BASE44
-# -----------------------------
-def push_to_base44(data):
-    print("📡 Sending to Base44...")
-
-    url = "https://api.base44.com/v1/entities/Competition"
-
-    headers = {
-        "Authorization": f"Bearer {BASE44_API_KEY}",
-        "Content-Type": "application/json"
-    }
-
-    success = 0
-
-    for comp in data:
-        payload = {
-            "title": comp["title"],
-            "url": comp["url"],
-            "is_scraped": True
-        }
-
-        res = requests.post(url, json=payload, headers=headers)
-
-        print("→", comp["title"])
-        print("status:", res.status_code)
-
-        if res.status_code in [200, 201]:
-            success += 1
-        else:
-            print("error:", res.text)
-
-    print(f"✅ Saved {success}/{len(data)}")
+    return data
 
 
-# -----------------------------
-# MAIN FLOW
-# -----------------------------
-data = scrape_competitions()
+data = scrape()
 
 print(f"📦 SCRAPED COMPETITIONS: {len(data)}")
 
-for i, comp in enumerate(data):
-    print(f"{i+1}. {comp['title']} - {comp['url']}")
+for i, c in enumerate(data):
+    print(i+1, c["title"], "-", c["url"])
 
-push_to_base44(data)
+# 👉 IMPORTANT: output JSON for Base44 function (NOT DB write here)
+with open("data.json", "w") as f:
+    json.dump(data, f)
+
+print("✅ Saved output for Base44 ingestion")
