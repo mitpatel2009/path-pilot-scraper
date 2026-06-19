@@ -1,25 +1,22 @@
 name: Weekly Competition Sync
 
 on:
+  workflow_dispatch:   # manual run
   schedule:
-    - cron: "0 0 * * 0"
-  workflow_dispatch:
+    - cron: "0 0 * * 0"  # weekly run
 
 jobs:
   sync:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      - name: Install dependencies
-        run: pip install requests beautifulsoup4
+      - run: pip install requests beautifulsoup4
 
       - name: Run scraper
         env:
