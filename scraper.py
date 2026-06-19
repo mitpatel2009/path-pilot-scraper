@@ -35,5 +35,7 @@ data = [
     {"title": "Sample Competition"}
 ]
 
-print(f"Found {len(data)} competitions")
+print("📦 SCRAPED COMPETITIONS:")
+for i, comp in enumerate(data):
+    print(f"{i+1}. {comp['title']} - {comp.get('url', 'no url')}")
 push_to_base44(data)
