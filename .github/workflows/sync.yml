@@ -1,24 +1,7 @@
-name: Weekly Competition Sync
-
-on:
-  workflow_dispatch:   # manual run
-  schedule:
-    - cron: "0 0 * * 0"  # weekly run
-
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - run: pip install requests beautifulsoup4
-
-      - name: Run scraper
-        env:
-          BASE44_API_KEY: ${{ secrets.BASE44_API_KEY }}
-        run: python scraper.py
+- name: Run scraper
+  env:
+    BASE44_API_KEY: ${{ secrets.BASE44_API_KEY }}
+  run: |
+    echo "Checking key..."
+    if [ -z "$BASE44_API_KEY" ]; then echo "NO KEY FOUND"; exit 1; fi
+    python scraper.py
