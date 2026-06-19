@@ -2,7 +2,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-BASE44_API_KEY = os.environ.get("BASE44_API_KEY")
+BASE44_API_KEY = os.environ.get("2aebdf0279d048d1b5bd81d8446694e9")
 
 BASE44_URL = "https://api.base44.com/v1/entities/Competition"
 
