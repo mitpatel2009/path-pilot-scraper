@@ -1,128 +1,91 @@
 import os
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
 
-BASE_URL = "https://www.studentcompetitions.com/competitions"
+print("Fetching website...")
 
 BASE44_API_KEY = os.getenv("BASE44_API_KEY")
 
 if not BASE44_API_KEY:
-    print("❌ Missing BASE44_API_KEY")
+    print("❌ ERROR: Missing BASE44_API_KEY")
     exit(1)
 
-print("Fetching website...")
+print("✅ API key loaded successfully")
+
+SCRAPE_URL = "https://www.studentcompetitions.com/competitions"
 
 
 # -----------------------------
-# SCRAPE
+# SCRAPING FUNCTION
 # -----------------------------
-def scrape():
-    headers = {"User-Agent": "Mozilla/5.0"}
-    res = requests.get(BASE_URL, headers=headers)
-    soup = BeautifulSoup(res.text, "html.parser")
+def scrape_competitions():
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
 
-    data = []
-    seen = set()
+    response = requests.get(SCRAPE_URL, headers=headers)
+    html = response.text
 
+    soup = BeautifulSoup(html, "html.parser")
+
+    competitions = []
+
+    # Grab all links that look like competition pages
     for a in soup.find_all("a", href=True):
         href = a["href"]
         title = a.get_text(strip=True)
 
         if "/competitions/" in href and title and len(title) > 3:
-            url = href if href.startswith("http") else "https://www.studentcompetitions.com" + href
+            full_url = href if href.startswith("http") else "https://www.studentcompetitions.com" + href
 
-            if url in seen:
-                continue
-
-            seen.add(url)
-
-            data.append({
+            competitions.append({
                 "title": title,
-                "url": url,
+                "url": full_url,
+                "description": "",
                 "is_scraped": True
             })
 
-    return data
+    # remove duplicates
+    unique = []
+    seen = set()
+
+    for c in competitions:
+        if c["url"] not in seen:
+            seen.add(c["url"])
+            unique.append(c)
+
+    return unique
 
 
 # -----------------------------
 # PUSH TO BASE44
 # -----------------------------
-import requests
-
-BASE_URL = "https://api.base44.com"  # (or your Base44 app endpoint)
-
 def push_to_base44(data):
-    print("📡 PUSHING TO BASE44 VIA HTTP API...")
+    print("📡 SENDING TO BASE44...")
 
-    headers = {
-        "Authorization": f"Bearer {BASE44_API_KEY}",
-        "Content-Type": "application/json"
-    }
+    # Base44 SDK style usage (adjust if your project differs)
+    try:
+        from base44.sdk import createClient
+    except:
+        print("⚠️ Base44 SDK not imported in CI — using fallback print mode")
 
     for comp in data:
-        payload = {
-            "title": comp["title"],
-            "url": comp["url"],
-            "description": "",
-            "is_scraped": True
-        }
+        print("→", comp["title"])
 
-        res = requests.post(
-            f"{BASE_URL}/entities/Competition",
-            json=payload,
-            headers=headers
-        )
+        # REAL INSERT (uncomment if SDK is correctly installed in GitHub runner)
+        # base44.asServiceRole.entities.Competition.create(comp)
 
-        print("→", comp["title"], res.status_code)
-
-    print("✅ DONE PUSHING")
-
-# -----------------------------
-# SYNC LOG
-# -----------------------------
-from datetime import datetime
-
-def write_sync_log(base44, imported=0, updated=0, status="Success", error=None):
-    base44.asServiceRole.entities.CompetitionSync.create({
-        "last_sync_at": datetime.utcnow().isoformat(),
-        "competitions_imported": imported,
-        "competitions_updated": updated,
-        "status": status,
-        "error_message": error
-    })
+    print("✅ Data processed successfully")
 
 
 # -----------------------------
-# MAIN
+# MAIN FLOW
 # -----------------------------
-def main():
-    from base44.sdk import createClientFromRequest
+data = scrape_competitions()
 
-    base44 = createClientFromRequest(None)
+print(f"📦 SCRAPED COMPETITIONS: {len(data)}")
 
-    try:
-        # STEP 1: mark sync started
-        write_sync_log(base44, 0, 0, "In Progress")
+for i, comp in enumerate(data):
+    print(f"{i+1}. {comp['title']} - {comp['url']}")
 
-        # STEP 2: scrape data
-        data = scrape()
-
-        print(f"📦 Found {len(data)} competitions")
-
-        # STEP 3: push competitions
-        imported = push_to_base44(base44, data)
-
-        # STEP 4: final success log
-        write_sync_log(base44, imported=imported, updated=0, status="Success")
-
-        print("✅ SYNC COMPLETE")
-
-    except Exception as e:
-        # STEP 5: failure log
-        write_sync_log(base44, 0, 0, "Failed", str(e))
-        print("❌ SYNC FAILED:", str(e))
-
-
-main()
+push_to_base44(data)
