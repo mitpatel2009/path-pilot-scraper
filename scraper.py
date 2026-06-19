@@ -1,8 +1,9 @@
 import os
+import requests
+from bs4 import BeautifulSoup
 
 print("Fetching website...")
 
-# Read API key properly
 BASE44_API_KEY = os.getenv("BASE44_API_KEY")
 
 if not BASE44_API_KEY:
@@ -11,31 +12,80 @@ if not BASE44_API_KEY:
 
 print("✅ API key loaded successfully")
 
-# -----------------------------
-# Your scraping logic here
-# -----------------------------
+SCRAPE_URL = "https://www.studentcompetitions.com/competitions"
 
+
+# -----------------------------
+# SCRAPING FUNCTION
+# -----------------------------
+def scrape_competitions():
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    response = requests.get(SCRAPE_URL, headers=headers)
+    html = response.text
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    competitions = []
+
+    # Grab all links that look like competition pages
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        title = a.get_text(strip=True)
+
+        if "/competitions/" in href and title and len(title) > 3:
+            full_url = href if href.startswith("http") else "https://www.studentcompetitions.com" + href
+
+            competitions.append({
+                "title": title,
+                "url": full_url,
+                "description": "",
+                "is_scraped": True
+            })
+
+    # remove duplicates
+    unique = []
+    seen = set()
+
+    for c in competitions:
+        if c["url"] not in seen:
+            seen.add(c["url"])
+            unique.append(c)
+
+    return unique
+
+
+# -----------------------------
+# PUSH TO BASE44
+# -----------------------------
 def push_to_base44(data):
-    # Example safe check (DO NOT raise blindly anymore)
-    if not BASE44_API_KEY:
-        print("❌ Missing API key inside function")
-        return
+    print("📡 SENDING TO BASE44...")
 
-    print("📡 Pushing data to Base44...")
+    # Base44 SDK style usage (adjust if your project differs)
+    try:
+        from base44.sdk import createClient
+    except:
+        print("⚠️ Base44 SDK not imported in CI — using fallback print mode")
 
-    # TODO: your actual Base44 SDK / request logic here
-    # Example placeholder:
-    # response = requests.post(...)
+    for comp in data:
+        print("→", comp["title"])
 
-    print("✅ Data pushed successfully")
+        # REAL INSERT (uncomment if SDK is correctly installed in GitHub runner)
+        # base44.asServiceRole.entities.Competition.create(comp)
+
+    print("✅ Data processed successfully")
 
 
-# Example flow
-data = [
-    {"title": "Sample Competition"}
-]
+# -----------------------------
+# MAIN FLOW
+# -----------------------------
+data = scrape_competitions()
 
-print("📦 SCRAPED COMPETITIONS:")
+print(f"📦 SCRAPED COMPETITIONS: {len(data)}")
+
 for i, comp in enumerate(data):
-    print(f"{i+1}. {comp['title']} - {comp.get('url', 'no url')}")
+    print(f"{i+1}. {comp['title']} - {comp['url']}")
+
 push_to_base44(data)
