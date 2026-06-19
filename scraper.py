@@ -60,43 +60,36 @@ def scrape_competitions():
 # -----------------------------
 # PUSH TO BASE44
 # -----------------------------
+from base44.sdk import createClient
+
+
 def push_to_base44(data):
-    print("📡 SENDING TO BASE44...")
+    print("📡 Sending to Base44 via SDK...")
 
-    url = "https://api.base44.com/entities/Competition"
-
-    headers = {
-        "api_key": BASE44_API_KEY,
-        "Content-Type": "application/json"
-    }
+    base44 = createClient({
+        "appId": os.getenv("BASE44_APP_ID"),
+        "headers": {
+            "api_key": os.getenv("BASE44_API_KEY")
+        }
+    })
 
     success = 0
 
     for comp in data:
         try:
-            payload = {
+            base44.entities.Competition.create({
                 "title": comp["title"],
                 "url": comp["url"],
-                "description": "",
                 "is_scraped": True
-            }
-
-            res = requests.post(url, json=payload, headers=headers, timeout=10)
+            })
 
             print("→", comp["title"])
-            print("   status:", res.status_code)
-
-            # IMPORTANT: prevent hidden crash
-            if res.status_code not in [200, 201]:
-                print("   error:", res.text)
-
-            else:
-                success += 1
+            success += 1
 
         except Exception as e:
-            print("❌ Exception:", str(e))
+            print("❌ Error:", str(e))
 
-    print(f"✅ Saved {success}/{len(data)} competitions")
+    print(f"✅ Saved {success}/{len(data)}")
 
 
 # -----------------------------
