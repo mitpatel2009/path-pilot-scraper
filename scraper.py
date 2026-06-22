@@ -4,8 +4,8 @@ from bs4 import BeautifulSoup
 
 print("Fetching website...")
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = "https://pkcumisiyejzgpcmmkyl.supabase.co/"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrY3VtaXNpeWVqemdwY21ta3lsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NTM5NzksImV4cCI6MjA5NzQyOTk3OX0.KKfOD62-rugYsZdkvT-BjEc5yxKJynMLFRttYMC-Pwc"
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("❌ Missing Supabase credentials")
