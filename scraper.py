@@ -4,9 +4,9 @@ from bs4 import BeautifulSoup
 
 print("Fetching website...")
 
-BASE44_API_KEY = os.getenv("BASE44_API_KEY")
+BASE44_API_KEY = "2aebdf0279d048d1b5bd81d8446694e9"
 
-if not BASE44_API_KEY:
+if not BASE44_API_KEY:x
     print("❌ ERROR: Missing BASE44_API_KEY")
     exit(1)
 
@@ -60,21 +60,33 @@ def scrape_competitions():
 # -----------------------------
 # PUSH TO BASE44
 # -----------------------------
-def push_to_base44(data):
-    print("📡 SENDING TO BASE44...")
+import os
+import requests
 
-    # Base44 SDK style usage (adjust if your project differs)
-    try:
-        from base44.sdk import createClient
-    except:
-        print("⚠️ Base44 SDK not imported in CI — using fallback print mode")
+SUPABASE_URL = "https://pkcumisiyejzgpcmmkyl.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrY3VtaXNpeWVqemdwY21ta3lsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NTM5NzksImV4cCI6MjA5NzQyOTk3OX0.KKfOD62-rugYsZdkvT-BjEc5yxKJynMLFRttYMC-Pwc"
+
+def push_to_supabase(data):
+    print("📡 Sending to Supabase...")
+
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    url = f"{SUPABASE_URL}/rest/v1/competitions"
 
     for comp in data:
-        print("→", comp["title"])
-        # REAL INSERT (uncomment if SDK is correctly installed in GitHub runner)
-        base44.asServiceRole.entities.Competition.create(comp)
+        payload = {
+            "title": comp["title"],
+            "url": comp["url"],
+            "description": comp["description"],
+            "is_scraped": True
+        }
 
-    print("✅ Data processed successfully")
+        r = requests.post(url, json=payload, headers=headers)
+        print(comp["title"], r.status_code)
 
 
 # -----------------------------
