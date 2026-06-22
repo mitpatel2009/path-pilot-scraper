@@ -6,7 +6,7 @@ print("Fetching website...")
 
 BASE44_API_KEY = "2aebdf0279d048d1b5bd81d8446694e9"
 
-if not BASE44_API_KEY:x
+if not BASE44_API_KEY:
     print("❌ ERROR: Missing BASE44_API_KEY")
     exit(1)
 
