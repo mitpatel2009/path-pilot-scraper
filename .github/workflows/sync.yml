@@ -3,7 +3,7 @@ name: Weekly Competition Sync
 on:
   schedule:
     - cron: "0 6 * * 1"   # every Monday 6 AM UTC
-  workflow_dispatch:       # manual run button
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -29,7 +29,6 @@ jobs:
       # 4. Run scraper
       - name: Run scraper
         env:
-          BASE44_API_KEY: ${{ secrets.BASE44_API_KEY }}
-        run: |
-          echo "Running scraper..."
-          python scraper.py
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python scraper.py
