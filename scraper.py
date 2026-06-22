@@ -4,67 +4,46 @@ from bs4 import BeautifulSoup
 
 print("Fetching website...")
 
-BASE44_API_KEY = "2aebdf0279d048d1b5bd81d8446694e9"
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-if not BASE44_API_KEY:
-    print("❌ ERROR: Missing BASE44_API_KEY")
+if not SUPABASE_URL or not SUPABASE_KEY:
+    print("❌ Missing Supabase credentials")
     exit(1)
 
-print("✅ API key loaded successfully")
+print("✅ API keys loaded")
+
 
 SCRAPE_URL = "https://www.studentcompetitions.com/competitions"
 
 
-# -----------------------------
-# SCRAPING FUNCTION
-# -----------------------------
 def scrape_competitions():
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+    headers = {"User-Agent": "Mozilla/5.0"}
 
     response = requests.get(SCRAPE_URL, headers=headers)
-    html = response.text
-
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(response.text, "html.parser")
 
     competitions = []
-
-    # Grab all links that look like competition pages
-    for a in soup.find_all("a", href=True):
-        href = a["href"]
-        title = a.get_text(strip=True)
-
-        if "/competitions/" in href and title and len(title) > 3:
-            full_url = href if href.startswith("http") else "https://www.studentcompetitions.com" + href
-
-            competitions.append({
-                "title": title,
-                "url": full_url,
-                "description": "",
-                "is_scraped": True
-            })
-
-    # remove duplicates
-    unique = []
     seen = set()
 
-    for c in competitions:
-        if c["url"] not in seen:
-            seen.add(c["url"])
-            unique.append(c)
+    for a in soup.find_all("a", href=True):
+        title = a.get_text(strip=True)
+        href = a["href"]
 
-    return unique
+        if "/competitions/" in href and "/category/" not in href and len(title) > 3:
+            url = href if href.startswith("http") else "https://www.studentcompetitions.com" + href
 
+            if url not in seen:
+                seen.add(url)
+                competitions.append({
+                    "title": title,
+                    "url": url,
+                    "description": "",
+                    "is_scraped": True
+                })
 
-# -----------------------------
-# PUSH TO BASE44
-# -----------------------------
-import os
-import requests
+    return competitions
 
-SUPABASE_URL = "https://pkcumisiyejzgpcmmkyl.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrY3VtaXNpeWVqemdwY21ta3lsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NTM5NzksImV4cCI6MjA5NzQyOTk3OX0.KKfOD62-rugYsZdkvT-BjEc5yxKJynMLFRttYMC-Pwc"
 
 def push_to_supabase(data):
     print("📡 Sending to Supabase...")
@@ -86,12 +65,11 @@ def push_to_supabase(data):
         }
 
         r = requests.post(url, json=payload, headers=headers)
-        print(comp["title"], r.status_code)
+
+        print(comp["title"], r.status_code, r.text)
 
 
-# -----------------------------
 # MAIN FLOW
-# -----------------------------
 data = scrape_competitions()
 
 print(f"📦 SCRAPED COMPETITIONS: {len(data)}")
@@ -99,4 +77,4 @@ print(f"📦 SCRAPED COMPETITIONS: {len(data)}")
 for i, comp in enumerate(data):
     print(f"{i+1}. {comp['title']} - {comp['url']}")
 
-push_to_base44(data)
+push_to_supabase(data)
