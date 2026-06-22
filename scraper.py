@@ -71,9 +71,8 @@ def push_to_base44(data):
 
     for comp in data:
         print("→", comp["title"])
-
         # REAL INSERT (uncomment if SDK is correctly installed in GitHub runner)
-        # base44.asServiceRole.entities.Competition.create(comp)
+        base44.asServiceRole.entities.Competition.create(comp)
 
     print("✅ Data processed successfully")
 
